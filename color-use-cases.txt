@@ -1,0 +1,44 @@
+Light Mode (Forest Adventure)
+UI Element	Suggested Color	Notes / Tailwind Hint
+Body / Page Background	#E8F5E9 (Mint Green)	bg-green-50 or custom class bg-mint-light
+Cards / Containers	#C8E6C9 (Soft Green)	For chat containers, profile cards, sections; bg-green-200
+Primary Text	#333333	Use for main headings, chat text; text-gray-900
+Secondary / Placeholder Text	#666666	For hints, meta info; text-gray-600
+Buttons / Interactive Elements	#FFCC80 (Light Orange)	Primary action buttons; bg-orange-200
+Button Text	#333333	Contrast for readability; text-gray-900
+Chat Bubble (User)	#A5D6A7 (Leaf Green)	User’s messages; bg-green-300
+Chat Bubble (Assistant)	#FFF59D (Soft Yellow)	AI messages; bg-yellow-200
+Borders / Dividers	#E0E0E0	Subtle lines between sections; border-gray-300
+Icons / Accents	#FFCC80 or #A5D6A7	Small highlights, badges, hover effects
+
+Extra Styling Tips:
+
+Rounded corners: rounded-xl for chat bubbles/cards.
+
+Shadows: shadow-md for cards, subtle shadow-sm for chat bubbles.
+
+Keep interactive elements (buttons, links) slightly brighter for contrast.
+
+
+
+--------------------------------------------------------------------------------------------------------
+
+
+Dark Mode (Forest Adventure)
+UI Element	Suggested Color	Notes / Tailwind Hint
+Body / Page Background	#1B262C (Dark Teal)	bg-teal-900 or custom bg-dark-teal
+Cards / Containers	#2F4F4F (Slate Gray)	Chat containers, cards; bg-gray-800
+Primary Text	#E0E0E0	Main headings, chat text; text-gray-200
+Secondary / Placeholder Text	#B0B0B0	Hints, meta info; text-gray-400
+Buttons / Interactive Elements	#FFA726 (Orange)	Action buttons; bg-orange-500
+Button Text	#1B262C	Dark teal for contrast; text-teal-900
+Chat Bubble (User)	#3E606F (Muted Blue-Green)	User messages; bg-blue-gray-700
+Chat Bubble (Assistant)	#FFD54F (Warm Yellow)	AI messages; bg-yellow-400
+Borders / Dividers	#383838	Subtle separators; border-gray-700
+Icons / Accents	#FFA726 or #FFD54F	Hover effects, badges, highlights
+
+Extra Styling Tips:
+
+Shadows can be lighter on dark mode: shadow-gray-700 or shadow-lg.
+
+Use subtle hover/active states to guide interaction (hover:bg-orange-400).

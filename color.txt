@@ -1,0 +1,19 @@
+Light Mode:
+Primary Background: #E8F5E9 (Mint Green)
+Secondary / Cards: #C8E6C9 (Soft Green)
+Accent / Buttons: #FFCC80 (Light Orange)
+Text Primary: #333333
+User Bubble: #A5D6A7 (Leaf Green)
+Assistant Bubble: #FFF59D (Soft Yellow)
+
+
+---------------------------------------------------
+
+
+Dark Mode:
+Primary Background: #1B262C (Dark Teal)
+Secondary / Cards: #2F4F4F (Slate Gray)
+Accent / Buttons: #FFA726 (Orange)
+Text Primary: #E0E0E0
+User Bubble: #3E606F (Muted Blue-Green)
+Assistant Bubble: #FFD54F (Warm Yellow)
