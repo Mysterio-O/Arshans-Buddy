@@ -1,171 +1,247 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+// AIWaveButton.jsx (Updated: Only Speech, No AI Text Bubble)
+import React, { useState, useRef} from "react";
+import { motion } from "motion/react";
+import { useNavigate } from "react-router";
 
 const AIWaveButton = () => {
-    const buttonRef = useRef(null);
-    const canvasRef = useRef(null);
-    const animationRef = useRef(null);
-    const [isHovered, setIsHovered] = useState(false);
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const navigate = useNavigate();
+  const [isListening, setIsListening] = useState(false);
+  const [userMessage, setUserMessage] = useState(""); // Optional: show what child said
+  const [aiState, setAiState] = useState(""); // 'loading', 'speaking'
+  const audioRef = useRef(null);
 
-    // Update dimensions on mount and resize
-    useEffect(() => {
-        const updateDimensions = () => {
-            if (buttonRef.current) {
-                const { width, height } = buttonRef.current.getBoundingClientRect();
-                setDimensions({ width: Math.floor(width), height: Math.floor(height) });
-            }
-        };
-        updateDimensions();
-        window.addEventListener('resize', updateDimensions);
-        return () => window.removeEventListener('resize', updateDimensions);
-    }, []);
+  const startListening = () => {
+    if (isListening) return;
 
-    // Canvas-based wave animation
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("দুঃখিত, আপনার ব্রাউজার ভয়েস সাপোর্ট করে না। Chrome বা Edge ব্যবহার করুন।");
+      return;
+    }
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'bn-BD';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
 
-        canvas.width = dimensions.width;
-        canvas.height = dimensions.height;
+    setIsListening(true);
 
-        let time = 0;
-        const waves = [
-            { amplitude: 12, frequency: 0.025, speed: 0.06, color: 'rgba(255, 138, 101, 0.8)' }, // Coral
-            { amplitude: 10, frequency: 0.035, speed: 0.08, color: 'rgba(255, 204, 128, 0.7)' }, // Light Orange
-            { amplitude: 8, frequency: 0.045, speed: 0.1, color: 'rgba(165, 214, 167, 0.6)' } // Leaf Green
-        ];
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript.trim();
+      if (!transcript) return;
 
-        const drawWaves = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+      console.log("🎙️ আপনি বলেছেন:", transcript);
+      setUserMessage(transcript); // Optional: show child's words
+      setIsListening(false);
 
-            // Solid background for visibility
-            ctx.fillStyle = 'rgba(255, 245, 157, 1)'; // Soft Yellow
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+      try {
+        setAiState("loading");
 
-            waves.forEach(wave => {
-                ctx.beginPath();
-                ctx.moveTo(0, canvas.height / 2);
+        // Step 1: Ask AI
+        const aiRes = await fetch("http://localhost:5000/api/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: transcript }),
+        }).then(r => r.json());
 
-                for (let x = 0; x < canvas.width; x++) {
-                    const y = canvas.height / 2 +
-                        Math.sin(x * wave.frequency + time * wave.speed) *
-                        wave.amplitude * (isHovered ? 1.5 : 1);
-                    ctx.lineTo(x, y);
-                }
+        const aiText = aiRes.response?.trim();
+        if (!aiText) throw new Error("No AI response");
 
-                ctx.lineTo(canvas.width, canvas.height);
-                ctx.lineTo(0, canvas.height);
-                ctx.closePath();
+        setAiState("speaking");
 
-                ctx.fillStyle = wave.color;
-                ctx.fill();
-            });
+        // Step 2: Get TTS audio
+        const ttsRes = await fetch("http://localhost:5000/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: aiText }),
+        }).then(r => r.json());
 
-            time += 0.12;
-            animationRef.current = requestAnimationFrame(drawWaves);
-        };
+        // Step 3: Play audio — no text shown
+        if (ttsRes.audioUrl) {
+          const audio = new Audio(`http://localhost:5000${ttsRes.audioUrl}`);
+          audioRef.current = audio;
 
-        if (isSpeaking) {
-            drawWaves();
-        } else {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            gradient.addColorStop(0, 'rgba(255, 138, 101, 0.7)'); // Coral
-            gradient.addColorStop(1, 'rgba(255, 204, 128, 0.6)'); // Light Orange
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          audio.onended = () => {
+            setAiState("");
+            audioRef.current = null;
+          };
+
+          audio.play().catch(err => {
+            console.error("Playback failed:", err);
+            setAiState("");
+            alert("আমিনা আপা কথা বলতে পারছে না। আবার চেষ্টা করুন।");
+          });
         }
+      } catch (err) {
+        console.error("AI Pipeline Error:", err);
+        setAiState("");
+        alert("দুঃখিত, কিছু ভুল হয়েছে। আবার চেষ্টা করুন।");
+      }
+    };
 
-        return () => {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
-        };
-    }, [isSpeaking, dimensions, isHovered]);
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      console.error("Speech error:", event.error);
+      // Handle errors (no bubble)
+    };
 
-    return (
-        <div
-            className="fixed inset-0 flex items-center justify-center"
-            style={{ zIndex: 1000 }}
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
+  const handleClose = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    navigate("/");
+  };
+
+  return (
+    <div
+      className="fixed inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm z-50 p-6"
+      onClick={handleClose}
+    >
+      {/* Optional: Show child's speech bubble */}
+      {userMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-20 bg-blue-500 text-white px-6 py-3 rounded-2xl rounded-tl-none max-w-xs shadow-lg"
+          style={{ alignSelf: "flex-start", left: "50%" }}
         >
+          {userMessage}
+        </motion.div>
+      )}
+
+      {/* Main Button */}
+      <motion.div
+        onClick={(e) => e.stopPropagation()}
+        className="relative rounded-full shadow-2xl cursor-pointer flex items-center justify-center overflow-hidden"
+        style={{
+          width: "min(240px, 60vw, 60vh)",
+          height: "min(240px, 60vw, 60vh)",
+          background: isListening
+            ? "radial-gradient(circle at 30% 30%, #FF5722, #F44336)"
+            : "radial-gradient(circle at 30% 30%, #4CAF50, #8BC34A)",
+          border: "4px solid #FFCC80",
+          boxShadow: isListening
+            ? "0 0 30px rgba(255, 87, 34, 0.5)"
+            : "0 10px 30px rgba(76, 175, 80, 0.4)",
+        }}
+      >
+        {/* Sound Waves */}
+        {isListening &&
+          Array.from({ length: 4 }).map((_, i) => (
             <motion.div
-                ref={buttonRef}
-                onClick={() => setIsSpeaking(!isSpeaking)}
-                className="relative overflow-hidden rounded-full shadow-lg cursor-pointer"
-                style={{
-                    width: 'min(200px, 50vw, 50vh)', // Responsive size
-                    height: 'min(200px, 50vw, 50vh)',
-                    background: 'linear-gradient(135deg, #FF8A65, #FFF59D)', // Coral to Soft Yellow
-                    border: '3px solid #FFCC80', // Light Orange border
-                    boxSizing: 'border-box'
-                }}
-                initial={{ scale: 0.7, opacity: 0 }}
-                animate={{ scale: isHovered ? 1.1 : 1, opacity: 1 }}
-                transition={{ scale: { duration: 0.4, ease: 'easeOut' }, opacity: { duration: 0.8, ease: 'easeOut', delay: 0.2 } }}
-                whileTap={{ scale: 0.9 }}
-                onHoverStart={() => setIsHovered(true)}
-                onHoverEnd={() => setIsHovered(false)}
-            >
-                <canvas
-                    ref={canvasRef}
-                    className="absolute inset-0 w-full h-full"
-                    style={{ zIndex: 1, opacity: 0.95 }}
-                    width={dimensions.width}
-                    height={dimensions.height}
+              key={i}
+              className="absolute rounded-full border-2 border-red-400 opacity-50"
+              style={{
+                width: "70%",
+                height: "70%",
+                top: "15%",
+                left: "15%",
+              }}
+              animate={{
+                scale: [1, 1.8, 1],
+                opacity: [0.6, 0, 0],
+              }}
+              transition={{
+                duration: 1.5 + i * 0.4,
+                repeat: Infinity,
+                ease: "easeOut",
+                delay: i * 0.3,
+              }}
+            />
+          ))}
+
+        {/* Voice Bars */}
+        {isListening && (
+          <div className="absolute inset-8 flex items-center justify-center">
+            <div className="flex space-x-1.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-1.5 bg-red-400 rounded-full"
+                  animate={{
+                    scaleY: [0.5, 1.6, 0.5],
+                    opacity: [0.7, 1, 0.7],
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.15,
+                  }}
+                  style={{ originY: 1 }}
                 />
-                <div className="relative z-10 w-full h-full flex items-center justify-center">
-                    <div className="flex items-center justify-center space-x-3">
-                        <motion.svg
-                            className={`w-8 h-8 ${isSpeaking ? 'text-[#FF8A65]' : 'text-[#333333] dark:text-[#E0E0E0]'}`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            animate={{ scale: isSpeaking ? [1, 1.1, 1] : 1 }}
-                            transition={{ repeat: isSpeaking ? Infinity : 0, duration: 0.6, ease: 'easeInOut' }}
-                        >
-                            {isSpeaking ? (
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1zm1 3a1 1 0 100 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-                            ) : (
-                                <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
-                            )}
-                        </motion.svg>
-                        <motion.span
-                            className={`text-lg font-semibold ${isSpeaking ? 'text-[#FF8A65]' : 'text-[#333333] dark:text-[#E0E0E0]'}`}
-                            animate={{ y: isSpeaking ? [0, -3, 0] : 0 }}
-                            transition={{ repeat: isSpeaking ? Infinity : 0, duration: 0.6, ease: 'easeInOut' }}
-                        >
-                            {isSpeaking ? 'Stop' : 'Speak'}
-                        </motion.span>
-                    </div>
-                </div>
-                {isSpeaking && (
-                    <>
-                        <motion.div
-                            className="absolute inset-0 rounded-full border-3 border-[#FFCC80] dark:border-[#FFA726]"
-                            initial={{ opacity: 0, scale: 1 }}
-                            animate={{ opacity: [0, 0.6, 0], scale: [1, 1.3, 1.5] }}
-                            transition={{ duration: 1.2, repeat: Infinity, ease: 'easeOut' }}
-                            style={{ zIndex: 5 }}
-                        />
-                        <motion.div
-                            className="absolute inset-0 rounded-full border-3 border-[#FFCC80] dark:border-[#FFA726]"
-                            initial={{ opacity: 0, scale: 1 }}
-                            animate={{ opacity: [0, 0.4, 0], scale: [1, 1.5, 1.9] }}
-                            transition={{ duration: 1.2, repeat: Infinity, delay: 0.4, ease: 'easeOut' }}
-                            style={{ zIndex: 5 }}
-                        />
-                    </>
-                )}
-            </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Center Button */}
+        <div
+          className="relative z-10 flex flex-col items-center justify-center space-y-1"
+          onClick={startListening}
+        >
+          <motion.div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-md"
+            animate={{
+              scale: isListening ? [1, 1.15, 1] : 1,
+              rotate: isListening ? [0, 8, -8, 0] : 0,
+            }}
+            transition={{ repeat: isListening ? Infinity : 0, duration: 0.8 }}
+            style={{
+              background: isListening
+                ? "linear-gradient(135deg, #D32F2F, #FF5722)"
+                : "linear-gradient(135deg, #388E3C, #4CAF50)",
+            }}
+          >
+            <span className="text-lg">{isListening ? "●" : "🎤"}</span>
+          </motion.div>
+          <motion.span
+            className="text-sm font-medium text-white drop-shadow-sm"
+            animate={{ y: isListening ? [0, -2, 0] : 0 }}
+            transition={{ repeat: isListening ? Infinity : 0 }}
+          >
+            {isListening ? "Listening..." : "Tap to Speak"}
+          </motion.span>
         </div>
-    );
+
+        {/* Status */}
+        {aiState === "loading" && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full animate-pulse">
+            Thinking...
+          </div>
+        )}
+        {aiState === "speaking" && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white text-xs px-3 py-1 rounded-full animate-pulse">
+            Speaking...
+          </div>
+        )}
+      </motion.div>
+
+      {/* Close Button */}
+      <button
+        className="absolute top-6 right-6 text-white bg-black bg-opacity-40 hover:bg-opacity-60 rounded-full p-2 transition-all duration-200 backdrop-blur-sm"
+        onClick={handleClose}
+        aria-label="Close"
+      >
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+    </div>
+  );
 };
 
 export default AIWaveButton;
