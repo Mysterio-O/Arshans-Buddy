@@ -39,7 +39,7 @@ const AIWaveButton = () => {
         setAiState("loading");
 
         // Step 1: Ask AI
-        const aiRes = await fetch("http://localhost:5000/api/ask", {
+        const aiRes = await fetch("https://arshans-buddy-server.onrender.com/api/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: transcript }),
@@ -51,7 +51,7 @@ const AIWaveButton = () => {
         setAiState("speaking");
 
         // Step 2: Get TTS audio
-        const ttsRes = await fetch("http://localhost:5000/api/tts", {
+        const ttsRes = await fetch("https://arshans-buddy-server.onrender.com/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text: aiText }),
@@ -59,7 +59,7 @@ const AIWaveButton = () => {
 
         // Step 3: Play audio — no text shown
         if (ttsRes.audioUrl) {
-          const audio = new Audio(`http://localhost:5000${ttsRes.audioUrl}`);
+          const audio = new Audio(`https://arshans-buddy-server.onrender.com${ttsRes.audioUrl}`);
           audioRef.current = audio;
 
           audio.onended = () => {
