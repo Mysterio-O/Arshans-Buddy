@@ -2,18 +2,15 @@ import React, { useState } from 'react';
 import BlurText from '../HeadlineReusableComponents/BlurText';
 import AIWaveButton from '../AIWaveButton/AIWaveButton';
 import ErrorBoundary from '../AIWaveButton/ErrorBoundary';
+import TextInput from '../TextInput/TextInput';
 
 const HomeComponent = () => {
-
-
-    const [isSpeaking, setIsSpeaking] = useState(false);
-
 
     const handleAnimationComplete = () => {
         console.log('animation completed');
     }
     return (
-        <div>
+        <div className='flex flex-col justify-between min-h-[calc(100vh-130px)]'>
 
             {/* headline text */}
             <div>
@@ -28,13 +25,8 @@ const HomeComponent = () => {
             </div>
 
 
-            {/* AI Bubble */}
-            <div
-                onClick={() => setIsSpeaking(!isSpeaking)}
-            >
-                <ErrorBoundary>
-                    <AIWaveButton isSpeaking={isSpeaking} isUser={false}/>
-                </ErrorBoundary>
+            <div>
+                <TextInput />
             </div>
 
 

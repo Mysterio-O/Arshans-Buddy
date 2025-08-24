@@ -3,6 +3,7 @@ import RootLayout from "../layouts/RootLayout";
 import Home from "../pages/Home/Home";
 import SignIn from "../pages/Auth/SignIn";
 import SignUp from "../pages/Auth/SignUp";
+import AIWaveButton from "../components/AIWaveButton/AIWaveButton";
 
 const router = createBrowserRouter([
     //  create your routes here
@@ -18,6 +19,10 @@ const router = createBrowserRouter([
             {
                 path: "/auth/signup",
                 Component: SignUp
+            },
+            {
+                path:'/voice-assistant',
+                Component: AIWaveButton
             }
         ]
     }

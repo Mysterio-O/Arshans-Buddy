@@ -3,7 +3,7 @@ import HomeComponent from '../../components/HomeComponent/HomeComponent';
 
 const Home = () => {
     return (
-        <div className='min-h-screen place-items-center py-4'>
+        <div className='place-items-center py-4'>
             <HomeComponent />
         </div>
     );
